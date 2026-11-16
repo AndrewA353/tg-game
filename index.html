@@ -180,9 +180,9 @@ if (tg) { tg.ready(); tg.expand(); }
 const fromBot = new URLSearchParams(location.search).get("from") === "bot";
 
 const CITIES = ["Москва", "Санкт-Петербург", "Казань", "Тюмень", "Екатеринбург"];
-const TARGETS = {work: 20, pick:30, sort:10};      // сколько тарников нужно обработать в каждый день
+const TARGETS = {work: 20, pick:10, sort:10};      // сколько тарников нужно обработать в каждый день
 let TARGET = TARGETS.work;
-const MAX_ERRORS = 3;   // день 3: сколько ошибок допустимо
+const MAX_ERRORS = 5;   // день 3: сколько ошибок допустимо
 
 const FLAVOR = [
   "Тарник встал на ленту как родной.",
