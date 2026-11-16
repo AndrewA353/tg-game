@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Развозка</title>
+<title>Смена на складе</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root {
@@ -17,10 +17,35 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
   font-family: system-ui, sans-serif; overflow: hidden; }
 [hidden] { display: none !important; }
 
-#app { height: 100%; display: flex; flex-direction: column; padding: 12px; gap: 12px; }
-.hud { display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; }
+/* ---------- меню ---------- */
+#menu { height: 100%; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 14px; padding: 24px; text-align: center; }
+#menu h1 { margin: 0; font-size: 28px; }
+#menu p { margin: 0 0 8px; opacity: .8; }
+.menu-btn { width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 700;
+  border: 0; border-radius: 14px; background: var(--accent); color: var(--accent-fg); }
+.menu-btn.alt { background: #16a34a; color: #fff; }
+.menu-btn:active { transform: scale(.97); }
 
-.belt { position: relative; flex: 1; min-height: 180px; max-height: 300px;
+/* ---------- сюжет ---------- */
+#story { height: 100%; display: flex; flex-direction: column; padding: 12px; gap: 14px; }
+.stage { flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 54px; letter-spacing: 6px; text-align: center; border-radius: 14px;
+  background: linear-gradient(#3a3f47, #232830); border: 3px solid #232830; }
+.bubble { background: rgba(127, 127, 127, .2); border-radius: 16px; padding: 14px 16px; }
+.bubble .who { font-size: 13px; font-weight: 700; opacity: .8; margin-bottom: 6px; }
+.bubble p { margin: 0; font-size: 18px; line-height: 1.35; }
+.bubble.narr p { font-style: italic; }
+.bubble.kolya { border-left: 5px solid #facc15; }
+
+/* ---------- игра ---------- */
+#app { height: 100%; display: flex; flex-direction: column; padding: 12px; gap: 12px; }
+.hud { display: flex; align-items: center; justify-content: space-between;
+  font-size: 20px; font-weight: 700; }
+.back { background: rgba(127, 127, 127, .25); color: var(--fg); border: 0;
+  border-radius: 10px; padding: 6px 12px; font-size: 18px; align-self: flex-start; }
+
+.belt { position: relative; flex: 1; min-height: 170px; max-height: 280px;
   background: #3a3f47; border: 3px solid #232830; border-radius: 14px;
   display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .belt.flash { box-shadow: inset 0 0 0 200px rgba(255, 60, 60, .35); }
@@ -29,21 +54,54 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
   animation: move 1s linear infinite; }
 @keyframes move { to { background-position: 40px 0; } }
 
-.tote { position: relative; width: 190px; height: 112px; border-radius: 10px;
+/* маленькие тарники дня 1 */
+.mini { position: absolute; bottom: 30px; left: -80px; width: 64px; height: 42px;
+  border-radius: 6px; border: 3px solid #1e3a8a;
+  background: linear-gradient(#3b82f6, #1d4ed8); animation: ride 1.6s linear forwards; }
+.mini::after { content: ""; position: absolute; left: 10px; right: 10px; top: 14px;
+  height: 14px; border-radius: 3px; background: #fff; }
+@keyframes ride { from { left: -80px; } to { left: 100%; } }
+
+/* большой тарник дней 2 и 3 */
+.tote { position: relative; width: 190px; height: 118px; border-radius: 10px; overflow: hidden;
   background: linear-gradient(#3b82f6, #1d4ed8); border: 4px solid #1e3a8a;
   box-shadow: 0 8px 0 rgba(0, 0, 0, .25);
   display: flex; align-items: center; justify-content: center; }
 .tote::before { content: ""; position: absolute; top: 8px; left: 12px; right: 12px;
   height: 10px; border-radius: 5px; background: rgba(0, 0, 0, .25); }
-.label { background: #fff; color: #111; border-radius: 6px; padding: 6px 10px;
-  margin-top: 10px; max-width: 160px; text-align: center; }
+.tote.held { outline: 4px solid #facc15; box-shadow: 0 0 22px #facc15, 0 8px 0 rgba(0, 0, 0, .25); }
+.label { position: relative; background: #fff; color: #111; border-radius: 6px;
+  padding: 6px 10px; margin-top: 12px; width: 140px; text-align: center; }
 .label small { display: block; font-size: 10px; letter-spacing: 1px; color: #666; }
 .label b { font-size: 16px; word-break: break-word; }
+#code { display: block; font-size: 12px; font-family: monospace; }
+.barcode { height: 26px; margin: 4px 0 2px;
+  background: repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 4px, #111 4px 5px,
+    #fff 5px 8px, #111 8px 11px, #fff 11px 13px); }
+.tote.scanned .label { background: #bbf7d0; }
+.laser { position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 2;
+  background: #ff2d2d; box-shadow: 0 0 10px 3px rgba(255, 45, 45, .8); }
+@keyframes sweep { from { top: 0; } to { top: 100%; } }
 
 @keyframes slidein { from { transform: translateX(-160%); } to { transform: translateX(0); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12px); } 75% { transform: translateX(12px); } }
 @keyframes fly { to { transform: translateY(260px) scale(.6); opacity: 0; } }
 
+/* шаги, телега, кнопки */
+.steps { display: flex; gap: 6px; }
+.step { flex: 1; text-align: center; padding: 6px 2px; border-radius: 10px; font-size: 12px;
+  background: rgba(127, 127, 127, .2); opacity: .7; }
+.step.active { background: var(--accent); color: var(--accent-fg); opacity: 1; font-weight: 700; }
+.step.doneStep { background: #16a34a; color: #fff; opacity: 1; }
+.cart-title { font-size: 14px; opacity: .85; min-height: 20px; }
+.slots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.slot { height: 24px; border: 2px dashed rgba(127, 127, 127, .5); border-radius: 4px; }
+.slot.full { border: 2px solid #1e3a8a; background: linear-gradient(#3b82f6, #1d4ed8); }
+.action { width: 100%; padding: 18px; font-size: 18px; font-weight: 700; border: 0;
+  border-radius: 14px; background: var(--accent); color: var(--accent-fg); }
+.action:active { transform: scale(.97); }
+
+/* день 3: телеги */
 .carts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .cart { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 14px;
   padding: 14px 6px; font-size: 34px; display: flex; flex-direction: column;
@@ -51,6 +109,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
 .cart span { font-size: 13px; font-weight: 600; word-break: break-word; }
 .cart:active { transform: scale(.96); }
 
+/* окно результата */
 .overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .8); color: #fff;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; padding: 24px; text-align: center; }
@@ -58,51 +117,113 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
 .overlay p { margin: 0; max-width: 320px; opacity: .9; }
 .overlay button { background: var(--accent); color: var(--accent-fg); border: 0;
   border-radius: 12px; padding: 14px 22px; font-size: 16px; font-weight: 600; }
+.overlay button.ghost { background: rgba(255, 255, 255, .15); color: #fff; }
 </style>
 </head>
 <body>
-<div id="app">
+
+<div id="menu">
+  <h1>🏭 Смена на складе</h1>
+  <p>Выбери рабочий день</p>
+  <button class="menu-btn" id="m-work"></button>
+  <button class="menu-btn" id="m-pick"></button>
+  <button class="menu-btn" id="m-sort"></button>
+  <button class="menu-btn alt" id="m-send" hidden></button>
+</div>
+
+<div id="story" hidden>
+  <button class="back" id="story-back">☰</button>
+  <div class="stage" id="stage"></div>
+  <div class="bubble" id="bubble">
+    <div class="who" id="who"></div>
+    <p id="say"></p>
+  </div>
+  <button class="action" id="next"></button>
+</div>
+
+<div id="app" hidden>
   <div class="hud">
-    <div>📦 <span id="done">0</span>/10</div>
+    <button class="back" id="back">☰</button>
+    <div id="counter"></div>
     <div id="lives"></div>
   </div>
 
   <div class="belt" id="belt">
     <div class="stripes"></div>
     <div class="tote" id="tote">
-      <div class="label"><small>НАПРАВЛЕНИЕ</small><b id="city"></b></div>
+      <div class="laser" id="laser" hidden></div>
+      <div class="label">
+        <small id="lbl-small"></small>
+        <b id="city"></b>
+        <div class="barcode" id="barcode" hidden></div>
+        <b id="code" hidden></b>
+      </div>
     </div>
   </div>
 
-  <div class="carts" id="carts"></div>
+  <div id="controls"></div>
 </div>
 
 <div class="overlay" id="overlay" hidden>
   <h2 id="o-title"></h2>
   <p id="o-text"></p>
-  <button id="o-send" hidden>📨 Отправить результат боту</button>
+  <button id="o-send" hidden>📨 Отправить результаты боту</button>
   <button id="o-again"></button>
+  <button id="o-menu" class="ghost">☰ В меню</button>
 </div>
 
 <script>
 const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-// Бот открывает страницу с ?from=bot. Только тогда можно отправлять результат.
+// Бот открывает страницу с ?from=bot. Только тогда можно отправлять результаты.
 const fromBot = new URLSearchParams(location.search).get("from") === "bot";
 
 const CITIES = ["Москва", "Санкт-Петербург", "Казань", "Тюмень", "Екатеринбург"];
-const TARGET = 10;      // сколько тарников нужно развезти
-const MAX_ERRORS = 3;   // сколько ошибок допустимо (на третьей смена провалена)
+const TARGET = 10;      // сколько тарников нужно обработать в каждый день
+const MAX_ERRORS = 3;   // день 3: сколько ошибок допустимо
 
-let done = 0, errors = 0, dest = 0, locked = true;
+const FLAVOR = [
+  "Тарник встал на ленту как родной.",
+  "Конвейер гудит, бригада работает.",
+  "Дядя Коля одобрительно хмыкнул.",
+  "Рядом кто-то уронил сетку. Все сделали вид, что не заметили.",
+  "Руки уже побаливают, но ты держишься.",
+  "Сканер где-то запищал. Ты не обернулся.",
+  "Тарник тяжелее, чем казался.",
+];
+
+const STORY = [
+  { who: "narr", crew: "🏭", btn: "🚶 Подойти к бригаде",
+    text: "ПЕРВАЯ СМЕНА. Ты приходишь на склад. Гудят конвейеры, пахнет скотчем и кофе. Тебе сказали идти на консолидацию, к точке сбора бригады." },
+  { who: "kolya", crew: "👷 👷 🧓 👷", btn: "😶 ...",
+    text: "«Залётным здесь не место»." },
+  { who: "narr", crew: "👷 👷 🧓 👷", btn: "😬 Стоять и не двигаться",
+    text: "Тишина. Бригада смотрит на тебя. Где-то вдалеке пищит сканер. Дядя Коля молчит ещё секунд десять." },
+  { who: "kolya", crew: "🧓 📦 📦 📦", btn: "💪 Встать к тарникам",
+    text: "«Ладно. На тарники пойдёшь». Он кивает на гору пустых тарников возле конвейера." },
+];
+
+let mode = "work";      // "work" (день 1), "pick" (день 2), "sort" (день 3)
+let done = 0, errors = 0, dest = 0, stage = 0, locked = true;
+let run = 0;            // номер текущей игры (чтобы старые таймеры не мешали)
+let storyIdx = 0;
+const wins = {};        // день -> число ошибок (лучший результат за сессию)
+
 const $ = (id) => document.getElementById(id);
+const dayOf = () => (mode === "work" ? 1 : mode === "pick" ? 2 : 3);
+
+function later(fn, ms) {
+  const r = run;
+  setTimeout(() => { if (r === run) fn(); }, ms);
+}
 
 function haptic(kind) {
   try {
     if (!tg || !tg.HapticFeedback) return;
     if (kind === "ok") tg.HapticFeedback.notificationOccurred("success");
-    else tg.HapticFeedback.notificationOccurred("error");
+    else if (kind === "bad") tg.HapticFeedback.notificationOccurred("error");
+    else tg.HapticFeedback.impactOccurred("light");
   } catch (e) {}
 }
 
@@ -113,85 +234,293 @@ function play(name, ms) {
   t.style.animation = name + " " + ms + "ms ease-out forwards";
 }
 
-function updateHud() {
-  $("done").textContent = done;
-  $("lives").textContent = "❤️".repeat(MAX_ERRORS - errors) + "🖤".repeat(errors);
-}
-
 function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
 
-function nextTote() {
-  dest = Math.floor(Math.random() * CITIES.length);
-  $("city").textContent = CITIES[dest];
-
-  const others = shuffle(CITIES.map((_, i) => i).filter((i) => i !== dest)).slice(0, 2);
-  const options = shuffle([dest, ...others]);
-
-  const box = $("carts");
-  box.innerHTML = "";
-  options.forEach((i) => {
-    const b = document.createElement("button");
-    b.className = "cart";
-    b.innerHTML = "🛒<span></span>";
-    b.querySelector("span").textContent = CITIES[i];
-    b.onclick = () => choose(i);
-    box.appendChild(b);
-  });
-
-  play("slidein", 450);
-  setTimeout(() => { locked = false; }, 450);
+/* ---------- меню и результаты ---------- */
+function refreshMenu() {
+  const mark = (d) => (d in wins ? "✅ " : "");
+  $("m-work").textContent = mark(1) + "📦 День 1: Тарники";
+  $("m-pick").textContent = mark(2) + "📱 День 2: Пики";
+  $("m-sort").textContent = mark(3) + "🚚 День 3: Развозка";
+  const n = Object.keys(wins).length;
+  $("m-send").hidden = !(fromBot && n > 0);
+  $("m-send").textContent = "📨 Отправить результаты боту (" + n + ")";
 }
 
+function addWin(day, err) {
+  if (!(day in wins) || err < wins[day]) wins[day] = err;
+  refreshMenu();
+}
+
+function sendResults() {
+  // Закрывает приложение и отправляет боту все пройденные дни за сессию
+  const results = Object.keys(wins).map((d) => ({ day: Number(d), errors: wins[d] }));
+  tg.sendData(JSON.stringify({ results: results }));
+}
+
+function openMode(m) {
+  mode = m;
+  $("menu").hidden = true;
+  $("story").hidden = true;
+  $("app").hidden = false;
+  start();
+}
+
+function toMenu() {
+  run++;
+  $("overlay").hidden = true;
+  $("app").hidden = true;
+  $("story").hidden = true;
+  $("menu").hidden = false;
+  refreshMenu();
+}
+
+/* ---------- сюжет дня 1 ---------- */
+function showStory(i) {
+  storyIdx = i;
+  const s = STORY[i];
+  $("menu").hidden = true;
+  $("app").hidden = true;
+  $("story").hidden = false;
+  $("stage").textContent = s.crew;
+  $("bubble").className = "bubble " + s.who;
+  $("who").textContent = (s.who === "kolya") ? "🧓 Дядя Коля" : "📖 Рассказчик";
+  $("say").textContent = s.text;
+  $("next").textContent = s.btn;
+}
+
+function nextStory() {
+  if (storyIdx + 1 < STORY.length) showStory(storyIdx + 1);
+  else openMode("work");
+}
+
+/* ---------- общее ---------- */
+function start() {
+  run++;
+  done = 0; errors = 0; stage = 0; locked = true;
+  $("overlay").hidden = true;
+  $("tote").hidden = (mode === "work");
+  document.querySelectorAll(".mini").forEach((m) => m.remove());
+  buildControls();
+  if (mode === "work") {
+    locked = false;
+    updateUi();
+  } else {
+    nextTote();
+  }
+}
+
+function buildControls() {
+  const c = $("controls");
+  let slots = "";
+  for (let i = 0; i < TARGET; i++) slots += '<div class="slot" id="slot' + i + '"></div>';
+
+  if (mode === "work") {
+    c.innerHTML =
+      '<div class="cart-title" id="flavor">Ты встал к тарникам. Нужно поставить ' + TARGET + ' штук.</div>' +
+      '<div class="slots">' + slots + '</div>' +
+      '<button class="action" id="put"></button>';
+    $("put").onclick = onPut;
+  } else if (mode === "pick") {
+    c.innerHTML =
+      '<div class="steps">' +
+        '<span class="step" id="s0">① Взять</span>' +
+        '<span class="step" id="s1">② Пик</span>' +
+        '<span class="step" id="s2">③ Телега</span>' +
+      '</div>' +
+      '<div class="cart-title">🛒 Консолидационная телега</div>' +
+      '<div class="slots">' + slots + '</div>' +
+      '<button class="action" id="action"></button>';
+    $("action").onclick = onAction;
+  } else {
+    c.innerHTML = '<div class="carts" id="carts"></div>';
+  }
+}
+
+function updateUi() {
+  $("counter").textContent = "📦 " + done + "/" + TARGET;
+  $("lives").hidden = (mode !== "sort");
+  $("lives").textContent = "❤️".repeat(MAX_ERRORS - errors) + "🖤".repeat(errors);
+
+  if (mode === "work" || mode === "pick") {
+    for (let i = 0; i < TARGET; i++) {
+      $("slot" + i).className = "slot" + (i < done ? " full" : "");
+    }
+  }
+  if (mode === "work") {
+    $("put").textContent = "📦 Поставить тарник на конвейер (" + done + "/" + TARGET + ")";
+  }
+  if (mode === "pick") {
+    const names = ["📥 Взять тарник с конвейера", "📱 Запикать тарник", "🛒 Поставить на телегу"];
+    $("action").textContent = names[stage];
+    for (let i = 0; i < 3; i++) {
+      $("s" + i).className = "step" + (i < stage ? " doneStep" : (i === stage ? " active" : ""));
+    }
+  }
+}
+
+function nextTote() {
+  stage = 0;
+  $("tote").classList.remove("held", "scanned");
+
+  if (mode === "sort") {
+    dest = Math.floor(Math.random() * CITIES.length);
+    $("lbl-small").textContent = "НАПРАВЛЕНИЕ";
+    $("city").hidden = false;
+    $("city").textContent = CITIES[dest];
+    $("barcode").hidden = true;
+    $("code").hidden = true;
+
+    const others = shuffle(CITIES.map((_, i) => i).filter((i) => i !== dest)).slice(0, 2);
+    const options = shuffle([dest, ...others]);
+    const box = $("carts");
+    box.innerHTML = "";
+    options.forEach((i) => {
+      const b = document.createElement("button");
+      b.className = "cart";
+      b.innerHTML = "🛒<span></span>";
+      b.querySelector("span").textContent = CITIES[i];
+      b.onclick = () => choose(i);
+      box.appendChild(b);
+    });
+  } else {
+    $("lbl-small").textContent = "ЭТИКЕТКА";
+    $("city").hidden = true;
+    $("barcode").hidden = false;
+    $("code").hidden = false;
+    $("code").textContent = "TR-" + Math.floor(100000 + Math.random() * 900000);
+  }
+
+  updateUi();
+  play("slidein", 450);
+  later(() => { locked = false; }, 450);
+}
+
+/* ---------- день 1: тарники ---------- */
+function onPut() {
+  if (locked) return;
+  done++;
+  haptic("tap");
+
+  const m = document.createElement("div");      // тарник едет по ленте
+  m.className = "mini";
+  m.addEventListener("animationend", () => m.remove());
+  $("belt").appendChild(m);
+
+  $("flavor").textContent = FLAVOR[Math.floor(Math.random() * FLAVOR.length)];
+  updateUi();
+
+  if (done >= TARGET) {
+    locked = true;
+    later(() => finish(true), 1200);            // ждём, пока последний тарник доедет
+  }
+}
+
+/* ---------- день 2: пики ---------- */
+function onAction() {
+  if (locked) return;
+  locked = true;
+  const tote = $("tote");
+
+  if (stage === 0) {                         // взять с конвейера
+    haptic("tap");
+    tote.classList.add("held");
+    stage = 1;
+    updateUi();
+    later(() => { locked = false; }, 250);
+
+  } else if (stage === 1) {                  // запикать
+    const laser = $("laser");
+    laser.hidden = false;
+    laser.style.animation = "none";
+    void laser.offsetWidth;
+    laser.style.animation = "sweep 500ms linear";
+    later(() => {
+      laser.hidden = true;
+      tote.classList.add("scanned");
+      $("lbl-small").textContent = "✓ ЗАПИКАНО";
+      haptic("ok");
+      stage = 2;
+      updateUi();
+      locked = false;
+    }, 550);
+
+  } else {                                   // поставить на телегу
+    done++;
+    haptic("ok");
+    play("fly", 350);
+    updateUi();
+    later(() => (done >= TARGET ? finish(true) : nextTote()), 380);
+  }
+}
+
+/* ---------- день 3: развозка ---------- */
 function choose(i) {
   if (locked) return;
   locked = true;
   if (i === dest) {
     done++;
     haptic("ok");
-    updateHud();
+    updateUi();
     play("fly", 350);
-    setTimeout(() => (done >= TARGET ? finish(true) : nextTote()), 380);
+    later(() => (done >= TARGET ? finish(true) : nextTote()), 380);
   } else {
     errors++;
     haptic("bad");
-    updateHud();
+    updateUi();
     play("shake", 350);
     $("belt").classList.add("flash");
-    setTimeout(() => $("belt").classList.remove("flash"), 300);
-    setTimeout(() => {
+    later(() => $("belt").classList.remove("flash"), 300);
+    later(() => {
       if (errors >= MAX_ERRORS) finish(false);
       else locked = false;
     }, 380);
   }
 }
 
+/* ---------- конец смены ---------- */
 function finish(won) {
-  $("o-title").textContent = won ? "🏆 Смена пройдена!" : "💥 Смена провалена";
+  const day = dayOf();
+  let title, text;
+
   if (won) {
-    $("o-text").textContent = "Ошибок: " + errors + ". Дядя Коля впервые улыбается." +
-      (fromBot ? "" : " (Тестовый режим в браузере: результат не отправляется.)");
+    addWin(day, day === 3 ? errors : 0);
+    if (day === 1) {
+      title = "🏆 Первая смена пройдена!";
+      text = "Десятый тарник встал на ленту. Дядя Коля смотрит на часы и кивает: «Смена окончена. Молодец. Завтра на пики пойдёшь».";
+    } else if (day === 2) {
+      title = "🏆 Второй день пройден!";
+      text = "Без ошибок. Для залётного неплохо. Завтра посмотрим, что ты умеешь.";
+    } else {
+      title = "🏆 Смена пройдена!";
+      text = "Ошибок: " + errors + ". Дядя Коля впервые улыбается.";
+    }
+    if (!fromBot) text += " (Тестовый режим в браузере: результат не отправляется.)";
   } else {
-    $("o-text").textContent = "Три ошибки. Дядя Коля: «Иди на тарники, подумай над своим поведением».";
+    title = "💥 Смена провалена";
+    text = "Три ошибки. Дядя Коля: «Иди на тарники, подумай над своим поведением».";
   }
+
+  $("o-title").textContent = title;
+  $("o-text").textContent = text;
   $("o-send").hidden = !(won && fromBot);
   $("o-again").textContent = won ? "Сыграть ещё" : "Попробовать ещё раз";
   $("overlay").hidden = false;
 }
 
-function start() {
-  done = 0; errors = 0; locked = true;
-  $("overlay").hidden = true;
-  updateHud();
-  nextTote();
-}
-
-$("o-send").onclick = () => {
-  // Закрывает приложение и отправляет боту короткое сообщение с результатом
-  tg.sendData(JSON.stringify({ day: 3, won: true, errors: errors }));
-};
+/* ---------- кнопки ---------- */
+$("m-work").onclick = () => showStory(0);
+$("m-pick").onclick = () => openMode("pick");
+$("m-sort").onclick = () => openMode("sort");
+$("m-send").onclick = sendResults;
+$("next").onclick = nextStory;
+$("story-back").onclick = toMenu;
+$("back").onclick = toMenu;
+$("o-send").onclick = sendResults;
 $("o-again").onclick = start;
+$("o-menu").onclick = toMenu;
 
-start();
+refreshMenu();
 </script>
 </body>
 </html>
