@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Развозка</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: var(--tg-theme-bg-color, #17212b);
+  --fg: var(--tg-theme-text-color, #ffffff);
+  --accent: var(--tg-theme-button-color, #2ea6ff);
+  --accent-fg: var(--tg-theme-button-text-color, #ffffff);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font-family: system-ui, sans-serif; overflow: hidden; }
+[hidden] { display: none !important; }
+
+#app { height: 100%; display: flex; flex-direction: column; padding: 12px; gap: 12px; }
+.hud { display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; }
+
+.belt { position: relative; flex: 1; min-height: 180px; max-height: 300px;
+  background: #3a3f47; border: 3px solid #232830; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.belt.flash { box-shadow: inset 0 0 0 200px rgba(255, 60, 60, .35); }
+.stripes { position: absolute; left: 0; right: 0; bottom: 0; height: 26px;
+  background: repeating-linear-gradient(90deg, #232830 0 20px, #4a515c 20px 40px);
+  animation: move 1s linear infinite; }
+@keyframes move { to { background-position: 40px 0; } }
+
+.tote { position: relative; width: 190px; height: 112px; border-radius: 10px;
+  background: linear-gradient(#3b82f6, #1d4ed8); border: 4px solid #1e3a8a;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, .25);
+  display: flex; align-items: center; justify-content: center; }
+.tote::before { content: ""; position: absolute; top: 8px; left: 12px; right: 12px;
+  height: 10px; border-radius: 5px; background: rgba(0, 0, 0, .25); }
+.label { background: #fff; color: #111; border-radius: 6px; padding: 6px 10px;
+  margin-top: 10px; max-width: 160px; text-align: center; }
+.label small { display: block; font-size: 10px; letter-spacing: 1px; color: #666; }
+.label b { font-size: 16px; word-break: break-word; }
+
+@keyframes slidein { from { transform: translateX(-160%); } to { transform: translateX(0); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12px); } 75% { transform: translateX(12px); } }
+@keyframes fly { to { transform: translateY(260px) scale(.6); opacity: 0; } }
+
+.carts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.cart { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 14px;
+  padding: 14px 6px; font-size: 34px; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; }
+.cart span { font-size: 13px; font-weight: 600; word-break: break-word; }
+.cart:active { transform: scale(.96); }
+
+.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, .8); color: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 24px; text-align: center; }
+.overlay h2 { margin: 0; font-size: 26px; }
+.overlay p { margin: 0; max-width: 320px; opacity: .9; }
+.overlay button { background: var(--accent); color: var(--accent-fg); border: 0;
+  border-radius: 12px; padding: 14px 22px; font-size: 16px; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hud">
+    <div>📦 <span id="done">0</span>/10</div>
+    <div id="lives"></div>
+  </div>
+
+  <div class="belt" id="belt">
+    <div class="stripes"></div>
+    <div class="tote" id="tote">
+      <div class="label"><small>НАПРАВЛЕНИЕ</small><b id="city"></b></div>
+    </div>
+  </div>
+
+  <div class="carts" id="carts"></div>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <h2 id="o-title"></h2>
+  <p id="o-text"></p>
+  <button id="o-send" hidden>📨 Отправить результат боту</button>
+  <button id="o-again"></button>
+</div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+// Бот открывает страницу с ?from=bot. Только тогда можно отправлять результат.
+const fromBot = new URLSearchParams(location.search).get("from") === "bot";
+
+const CITIES = ["Москва", "Санкт-Петербург", "Казань", "Тюмень", "Екатеринбург"];
+const TARGET = 10;      // сколько тарников нужно развезти
+const MAX_ERRORS = 3;   // сколько ошибок допустимо (на третьей смена провалена)
+
+let done = 0, errors = 0, dest = 0, locked = true;
+const $ = (id) => document.getElementById(id);
+
+function haptic(kind) {
+  try {
+    if (!tg || !tg.HapticFeedback) return;
+    if (kind === "ok") tg.HapticFeedback.notificationOccurred("success");
+    else tg.HapticFeedback.notificationOccurred("error");
+  } catch (e) {}
+}
+
+function play(name, ms) {
+  const t = $("tote");
+  t.style.animation = "none";
+  void t.offsetWidth;                       // перезапуск анимации
+  t.style.animation = name + " " + ms + "ms ease-out forwards";
+}
+
+function updateHud() {
+  $("done").textContent = done;
+  $("lives").textContent = "❤️".repeat(MAX_ERRORS - errors) + "🖤".repeat(errors);
+}
+
+function shuffle(arr) { return arr.sort(() => Math.random() - 0.5); }
+
+function nextTote() {
+  dest = Math.floor(Math.random() * CITIES.length);
+  $("city").textContent = CITIES[dest];
+
+  const others = shuffle(CITIES.map((_, i) => i).filter((i) => i !== dest)).slice(0, 2);
+  const options = shuffle([dest, ...others]);
+
+  const box = $("carts");
+  box.innerHTML = "";
+  options.forEach((i) => {
+    const b = document.createElement("button");
+    b.className = "cart";
+    b.innerHTML = "🛒<span></span>";
+    b.querySelector("span").textContent = CITIES[i];
+    b.onclick = () => choose(i);
+    box.appendChild(b);
+  });
+
+  play("slidein", 450);
+  setTimeout(() => { locked = false; }, 450);
+}
+
+function choose(i) {
+  if (locked) return;
+  locked = true;
+  if (i === dest) {
+    done++;
+    haptic("ok");
+    updateHud();
+    play("fly", 350);
+    setTimeout(() => (done >= TARGET ? finish(true) : nextTote()), 380);
+  } else {
+    errors++;
+    haptic("bad");
+    updateHud();
+    play("shake", 350);
+    $("belt").classList.add("flash");
+    setTimeout(() => $("belt").classList.remove("flash"), 300);
+    setTimeout(() => {
+      if (errors >= MAX_ERRORS) finish(false);
+      else locked = false;
+    }, 380);
+  }
+}
+
+function finish(won) {
+  $("o-title").textContent = won ? "🏆 Смена пройдена!" : "💥 Смена провалена";
+  if (won) {
+    $("o-text").textContent = "Ошибок: " + errors + ". Дядя Коля впервые улыбается." +
+      (fromBot ? "" : " (Тестовый режим в браузере: результат не отправляется.)");
+  } else {
+    $("o-text").textContent = "Три ошибки. Дядя Коля: «Иди на тарники, подумай над своим поведением».";
+  }
+  $("o-send").hidden = !(won && fromBot);
+  $("o-again").textContent = won ? "Сыграть ещё" : "Попробовать ещё раз";
+  $("overlay").hidden = false;
+}
+
+function start() {
+  done = 0; errors = 0; locked = true;
+  $("overlay").hidden = true;
+  updateHud();
+  nextTote();
+}
+
+$("o-send").onclick = () => {
+  // Закрывает приложение и отправляет боту короткое сообщение с результатом
+  tg.sendData(JSON.stringify({ day: 3, won: true, errors: errors }));
+};
+$("o-again").onclick = start;
+
+start();
+</script>
+</body>
+</html>
