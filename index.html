@@ -180,7 +180,8 @@ if (tg) { tg.ready(); tg.expand(); }
 const fromBot = new URLSearchParams(location.search).get("from") === "bot";
 
 const CITIES = ["Москва", "Санкт-Петербург", "Казань", "Тюмень", "Екатеринбург"];
-const TARGET = 10;      // сколько тарников нужно обработать в каждый день
+const TARGET = {work: 20, pick:30, sort:10};      // сколько тарников нужно обработать в каждый день
+let TARGET = TARGET.work;
 const MAX_ERRORS = 3;   // день 3: сколько ошибок допустимо
 
 const FLAVOR = [
@@ -297,6 +298,7 @@ function nextStory() {
 /* ---------- общее ---------- */
 function start() {
   run++;
+  TARGET = TARGETS[mode];
   done = 0; errors = 0; stage = 0; locked = true;
   $("overlay").hidden = true;
   $("tote").hidden = (mode === "work");
@@ -487,7 +489,7 @@ function finish(won) {
     addWin(day, day === 3 ? errors : 0);
     if (day === 1) {
       title = "🏆 Первая смена пройдена!";
-      text = "Десятый тарник встал на ленту. Дядя Коля смотрит на часы и кивает: «Смена окончена. Молодец. Завтра на пики пойдёшь».";
+      text = "Последний тарник встал на ленту. Дядя Коля смотрит на часы и кивает: «Смена окончена. Молодец. Завтра на пики пойдёшь».";
     } else if (day === 2) {
       title = "🏆 Второй день пройден!";
       text = "Без ошибок. Для залётного неплохо. Завтра посмотрим, что ты умеешь.";
